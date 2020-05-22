@@ -1,46 +1,6 @@
 use std::io::prelude::*;
 
-mod opcode;
-
-struct Code {
-    instrs: Vec<opcode::Opcode>,
-    jtable: std::collections::HashMap<usize, usize>,
-}
-
-impl Code {
-    fn from(data: Vec<u8>) -> Result<Self, Box<dyn std::error::Error>> {
-        let dict: Vec<u8> = vec![
-            opcode::Opcode::SHL.into(),
-            opcode::Opcode::SHR.into(),
-            opcode::Opcode::ADD.into(),
-            opcode::Opcode::SUB.into(),
-            opcode::Opcode::GETCHAR.into(),
-            opcode::Opcode::PUTCHAR.into(),
-            opcode::Opcode::LB.into(),
-            opcode::Opcode::RB.into(),
-        ];
-        let instrs: Vec<opcode::Opcode> = data
-            .iter()
-            .filter(|x| dict.contains(x))
-            .map(|x| opcode::Opcode::from(*x))
-            .collect();
-
-        let mut jstack: Vec<usize> = Vec::new();
-        let mut jtable: std::collections::HashMap<usize, usize> = std::collections::HashMap::new();
-        for (i, e) in instrs.iter().enumerate() {
-            if opcode::Opcode::LB == *e {
-                jstack.push(i);
-            }
-            if opcode::Opcode::RB == *e {
-                let j = jstack.pop().ok_or("pop from empty list")?;
-                jtable.insert(j, i);
-                jtable.insert(i, j);
-            }
-        }
-
-        Ok(Code { instrs, jtable })
-    }
-}
+use brainfuck::opcode;
 
 struct Interpreter {
     stack: Vec<u8>,
@@ -53,8 +13,8 @@ impl std::default::Default for Interpreter {
 }
 
 impl Interpreter {
-    fn run(&mut self, code: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
-        let code = Code::from(code)?;
+    fn run(&mut self, data: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
+        let code = opcode::Code::from(data)?;
         let code_len = code.instrs.len();
         let mut pc = 0;
         let mut ps = 0;
