@@ -7,8 +7,17 @@ use dynasmrt::{DynasmApi, DynasmLabelApi};
 use brainfuck::ir;
 use brainfuck::opcode;
 
-unsafe extern "sysv64" fn putchar(char: u8) {
-    std::io::stdout().write_all(&[char]).unwrap()
+unsafe extern "sysv64" fn putchar(char: *mut u8) {
+    std::io::stdout()
+        .write_all(std::slice::from_raw_parts(char, 1))
+        .unwrap();
+}
+
+unsafe extern "sysv64" fn getchar(char: *mut u8) {
+    std::io::stdout().flush().unwrap();
+    std::io::stdin()
+        .read_exact(std::slice::from_raw_parts_mut(char, 1))
+        .unwrap();
 }
 
 #[derive(Default)]
@@ -46,14 +55,22 @@ impl Interpreter {
                 ),
                 ir::IR::PUTCHAR => dynasm!(ops
                     ; mov  r15, rcx
-                    ; mov  rdi, [rcx]
+                    ; mov  rdi, rcx
                     ; mov  rax, QWORD putchar as _
                     ; sub  rsp, BYTE 0x28
                     ; call rax
                     ; add  rsp, BYTE 0x28
                     ; mov  rcx, r15
                 ),
-                ir::IR::GETCHAR => {}
+                ir::IR::GETCHAR => dynasm!(ops
+                    ; mov  r15, rcx
+                    ; mov  rdi, rcx
+                    ; mov  rax, QWORD getchar as _
+                    ; sub  rsp, BYTE 0x28
+                    ; call rax
+                    ; add  rsp, BYTE 0x28
+                    ; mov  rcx, r15
+                ),
                 ir::IR::JIZ(_) => {
                     let l = ops.new_dynamic_label();
                     let r = ops.new_dynamic_label();
