@@ -25,24 +25,24 @@ impl Interpreter {
 
         dynasm!(ops
             ; .arch x64
-            ; mov r12, rdi
-            ; mov r13, rsi
-            ; mov rcx, rdi
+            ; mov   r12, rdi // arg memory_addr_from
+            ; mov   r13, rsi // arg memory_addr_to
+            ; mov   rcx, rdi // stack pointer
         );
 
         for ir in code.instrs {
             match ir {
                 ir::IR::SHL(x) => dynasm!(ops
-                    ; sub rcx, x as i32
+                    ; sub rcx, x as i32 // sp -= x
                 ),
                 ir::IR::SHR(x) => dynasm!(ops
-                    ; add rcx, x as i32
+                    ; add rcx, x as i32 // sp += x
                 ),
                 ir::IR::ADD(x) => dynasm!(ops
-                    ; add BYTE [rcx], x as i8
+                    ; add BYTE [rcx], x as i8 // *sp += x
                 ),
                 ir::IR::SUB(x) => dynasm!(ops
-                    ; sub BYTE [rcx], x as i8
+                    ; sub BYTE [rcx], x as i8 // *sp -= x
                 ),
                 ir::IR::PUTCHAR => dynasm!(ops
                     ; mov  r15, rcx
